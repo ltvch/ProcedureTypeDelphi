@@ -1,0 +1,109 @@
+unit Unit2;
+
+interface
+
+uses
+  Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls;
+
+type
+  TDisplayerProc = procedure(const s: string);
+  TIntegerDisplayerFunc = function(const v: integer; dp: TDisplayerProc):boolean;
+  //TDisplayerProc и TIntegerDisplayerFunc - процедурные типы
+
+type
+  TDisplayMethod = procedure(const s: string) of object; //указатели методов ссылаются на методы экземпляра объекта
+
+  TDeveloper = class //class for pointer of method exemplar object
+    private
+      FName: string;
+      FOnNameChanged: TDisplayMethod;
+      procedure SetName(const Value: string);
+    published
+      property Name: string read FName write SetName;
+      property OnNameChanged: TDisplayMethod
+        read FOnNameChanged write FOnNameChanged;
+  end;
+type
+  TForm2 = class(TForm)
+    Button1: TButton;
+    Button2: TButton;
+    procedure Button1Click(Sender: TObject);
+    procedure Button2Click(Sender: TObject);
+  private
+    { Private declarations }
+    procedure ValueDisplayer(const s: string);
+  public
+    { Public declarations }
+  end;
+
+var
+  Form2: TForm2;
+
+implementation
+
+{$R *.dfm}
+
+{$REGION 'Процедурные типы и казатели процедур'}
+procedure Displayer(const s: string);
+begin
+  ShowMessage(s);
+end;
+
+function DisplayDoubleInteger(const v: integer; dp: TDisplayerProc): boolean;
+var r: integer; //функция DisplayDoubleInteger получает процедурный тип, как второй параметр (TDisplayerProc)
+begin
+  r:= v+v;
+  dp(IntToStr(r)); // это и есть callback
+
+  result:= r>0;
+end;
+
+procedure TForm2.Button1Click(Sender: TObject);
+var dp: TDisplayerProc; idf: TIntegerDisplayerFunc;//указатели процедур
+begin
+  dp:= Displayer;
+  dp('hello');//show hello
+  dp('delphi');//show delphi
+
+  idf:= DisplayDoubleInteger;
+
+  //what make?
+  if idf(2009, dp) then ShowMessage('true')
+  else ShowMessage('false');
+end;
+{$ENDREGION 'Процедурные типы и казатели процедур'}
+
+{$REGION 'Указатели на методы'}
+procedure TForm2.Button2Click(Sender: TObject);
+var d: TDeveloper;
+begin
+  d:= TDeveloper.Create;
+  try
+    d.OnNameChanged:= ValueDisplayer;
+    d.Name:= 'Marko';
+    d.Name:= 'zarko';
+    d.Name:= 'Billy';
+  finally
+    d.Free;
+  end;
+end;
+
+procedure TForm2.ValueDisplayer(const s: string);
+begin
+  ShowMessage(s);
+end;
+
+{ TDeveloper }
+
+procedure TDeveloper.SetName(const Value: string);
+begin
+  if FName <> Value then
+    if Assigned(FOnNameChanged) then
+      FOnNameChanged('old name: '+ FName);
+
+  FName:= Value;
+end;
+{$ENDREGION 'Указатели на методы'}
+
+end.
